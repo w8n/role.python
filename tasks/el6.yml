@@ -69,4 +69,3 @@
   pip: name={{item}} state=latest executable={{pip_bin}}
   with_items: [ pip, distribute ]
   sudo: yes
-  run_once: yes
