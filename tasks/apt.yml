@@ -1,0 +1,76 @@
+---
+
+- set_fact:
+    python_src: Python-{{python_version}}
+    python_url: https://www.python.org/ftp/python/{{python_version}}/Python-{{python_version}}.tgz
+    python_package: python_{{python_version}}-1_{{'amd64' if ansible_architecture == 'x86_64' else ansible_architecture}}.deb
+    python_disthome: /usr/local/src
+    python_bin: python{{'.'.join(python_version.split('.')[:2])}}
+    pip_bin: pip{{'.'.join(python_version.split('.')[:2])}}
+
+- name: copy pre-built Python package
+  copy: src={{item}}
+        dest={{python_disthome}}/
+        owner=root group=root mode=0644
+  sudo: yes
+  with_fileglob:
+    - apt/{{python_package}}
+
+- name: refresh package list
+  command: apt-get update
+  sudo: yes
+
+- name: install Python dependencies and development tools
+  apt: name={{item}}
+  with_items:
+    # standard library
+    - libbz2-dev
+    - libncurses5-dev
+    - liblzma-dev
+    - libsqlite3-dev
+    - libssl-dev
+    - tk-dev
+    - libreadline-dev
+    - zlib1g-dev
+    # extensions
+    - libgdbm-dev
+    - libdb-dev
+    - libpcap-dev
+    # development tools
+    - build-essential
+  sudo: yes
+
+- name: copy pre-built python package
+  copy: src={{item}}
+        dest={{python_disthome}}/
+        owner=root group=root mode=0644
+  sudo: yes
+  with_fileglob:
+    - apt/{{python_package}}
+
+- name: download and build Python package from source
+  shell: |
+    wget -O- {{python_url}} | tar -xz && \
+    cd {{python_src}} && \
+    ./configure --enable-shared --prefix=/usr && \
+    make && \
+    checkinstall --install=no --default --nodoc --fstrans=no make altinstall && \
+    mv {{python_package}} {{python_disthome}}/{{python_package}}
+    cd .. && \
+    rm -rf {{python_src}}
+  args:
+    chdir: /tmp
+    creates: "{{python_disthome}}/{{python_package}}"
+  sudo: yes
+
+- name: install python
+  shell: dpkg -i {{python_disthome}}/{{python_package}}
+  register: result
+  failed_when: result.rc != 0 and not ("preparing to replace python " + python_version) in result.stderr
+  changed_when: not ("preparing to replace python " + python_version) in result.stderr
+  sudo: yes
+
+- name: update python package installer
+  pip: name={{item}} state=latest executable={{pip_bin}}
+  with_items: [ pip, distribute ]
+  sudo: yes

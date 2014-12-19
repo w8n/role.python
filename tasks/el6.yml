@@ -1,0 +1,72 @@
+---
+
+- set_fact:
+    python_src: Python-{{python_version}}
+    python_url: https://www.python.org/ftp/python/{{python_version}}/Python-{{python_version}}.tgz
+    python_package: Python-{{python_version}}-1.{{ansible_architecture}}.rpm
+    python_disthome: /root/rpmbuild/RPMS/{{ansible_architecture}}
+    python_bin: python{{'.'.join(python_version.split('.')[:2])}}
+    pip_bin: pip{{'.'.join(python_version.split('.')[:2])}}
+
+- name: install SELinux Python bindings required by Ansible "copy" module
+  yum: name=libselinux-python
+  sudo: yes
+
+- name: copy pre-built Python package
+  copy: src=el6/{{python_package}}
+        dest={{python_disthome}}/
+        owner=root group=root mode=0644
+  sudo: yes
+
+- name: install Python dependencies and development tools
+  yum: name={{item}}
+  with_items:
+    # standard library
+    - bzip2-devel
+    - ncurses-devel
+    - xz-devel
+    - sqlite-devel
+    - openssl-devel
+    - tk-devel
+    - readline-devel
+    - zlib-devel
+    # extensions
+    - gdbm-devel
+    - db4-devel
+    - libpcap-devel
+    # development tools
+    - gcc
+    - make
+  sudo: yes
+
+- name: download and build Python package from source
+  shell: |
+    wget -O- {{python_url}} | tar -xz && \
+    pushd {{python_src}} && \
+    ./configure --enable-shared && \
+    make && \
+    checkinstall --install=no --default --nodoc make altinstall && \
+    popd && \
+    rm -rf {{python_src}}
+  args:
+    chdir: /tmp
+    creates: "{{python_disthome}}/{{python_package}}"
+  sudo: yes
+
+- name: install python
+  shell: rpm -i --nodeps {{python_disthome}}/{{python_package}}
+  register: result
+  failed_when: result.rc != 0 and not "already installed" in result.stderr
+  changed_when: not "already installed" in result.stderr
+  sudo: yes
+
+- name: run ldconfig
+  command: ldconfig
+  when: result | changed
+  sudo: yes
+
+- name: update python package installer
+  pip: name={{item}} state=latest executable={{pip_bin}}
+  with_items: [ pip, distribute ]
+  sudo: yes
+  run_once: yes

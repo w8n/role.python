@@ -1,0 +1,19 @@
+---
+
+- include: apt.yml
+  when: ansible_pkg_mgr == 'apt'
+
+- include: el6.yml
+  when: ansible_pkg_mgr == 'yum' and
+        ansible_distribution == 'CentOS' and
+        ansible_distribution_version|int == 6
+
+- name: test python command
+  shell: "{{python_bin}} --version"
+  register: result
+  changed_when: False
+  failed_when: ('Python ' + python_version) not in result.stdout
+
+- name: test pip command
+  shell: "{{pip_bin}} --help"
+  changed_when: False
