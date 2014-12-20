@@ -3,7 +3,7 @@ role.python
 
 Install dependencies:
 
-    $ sudo ansible-galaxy install -r requirements.txt
+    $ sudo ansible-galaxy install -r requirements.txt --ignore-errors
 
 Test for several operating systems:
 
