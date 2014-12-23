@@ -3,7 +3,7 @@
 - set_fact:
     python_src: Python-{{python_version}}
     python_url: https://www.python.org/ftp/python/{{python_version}}/Python-{{python_version}}.tgz
-    python_package: python_{{python_version}}-1_{{'amd64' if ansible_architecture == 'x86_64' else ansible_architecture}}.deb
+    python_package: python{{python_version}}_1-1_{{'amd64' if ansible_architecture == 'x86_64' else ansible_architecture}}.deb
     python_disthome: /usr/local/src
     python_bin: python{{'.'.join(python_version.split('.')[:2])}}
     pip_bin: pip{{'.'.join(python_version.split('.')[:2])}}
@@ -54,7 +54,7 @@
     cd {{python_src}} && \
     ./configure --enable-shared --prefix=/usr && \
     make && \
-    checkinstall --install=no --default --nodoc --fstrans=no make altinstall && \
+    checkinstall --install=no --fstrans=no --nodoc --default --pkgname=python{{python_version}} --pkgversion=1 make altinstall && \
     mv {{python_package}} {{python_disthome}}/{{python_package}}
     cd .. && \
     rm -rf {{python_src}}
@@ -72,5 +72,5 @@
 
 - name: update python package installer
   pip: name={{item}} state=latest executable={{pip_bin}}
-  with_items: [ pip, distribute ]
+  with_items: [ pip ]
   sudo: yes

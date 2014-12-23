@@ -3,7 +3,7 @@
 - set_fact:
     python_src: Python-{{python_version}}
     python_url: https://www.python.org/ftp/python/{{python_version}}/Python-{{python_version}}.tgz
-    python_package: Python-{{python_version}}-1.{{ansible_architecture}}.rpm
+    python_package: python{{python_version}}-1-1.{{ansible_architecture}}.rpm
     python_disthome: /root/rpmbuild/RPMS/{{ansible_architecture}}
     python_bin: python{{'.'.join(python_version.split('.')[:2])}}
     pip_bin: pip{{'.'.join(python_version.split('.')[:2])}}
@@ -13,9 +13,11 @@
   sudo: yes
 
 - name: copy pre-built Python package
-  copy: src=el6/{{python_package}}
+  copy: src={{item}}
         dest={{python_disthome}}/
         owner=root group=root mode=0644
+  with_fileglob:
+    - el6/{{python_package}}
   sudo: yes
 
 - name: install Python dependencies and development tools
@@ -39,13 +41,13 @@
     - make
   sudo: yes
 
-- name: download and build Python package from source
+- name: download and build python package from source
   shell: |
     wget -O- {{python_url}} | tar -xz && \
     pushd {{python_src}} && \
-    ./configure --enable-shared && \
+    ./configure --enable-shared --prefix=/usr && \
     make && \
-    checkinstall --install=no --default --nodoc make altinstall && \
+    checkinstall --install=no --nodoc --default --pkgname=python{{python_version}} --pkgversion=1 make altinstall && \
     popd && \
     rm -rf {{python_src}}
   args:
@@ -53,7 +55,7 @@
     creates: "{{python_disthome}}/{{python_package}}"
   sudo: yes
 
-- name: install python
+- name: install python package
   shell: rpm -i --nodeps {{python_disthome}}/{{python_package}}
   register: result
   failed_when: result.rc != 0 and not "already installed" in result.stderr
@@ -67,5 +69,5 @@
 
 - name: update python package installer
   pip: name={{item}} state=latest executable={{pip_bin}}
-  with_items: [ pip, distribute ]
+  with_items: [ pip ]
   sudo: yes
