@@ -47,7 +47,7 @@
     ./configure --enable-shared --prefix=/usr && \
     make && \
     checkinstall --install=no --fstrans=no --nodoc --default --pkgname=python{{python_version}} --pkgversion=1 make altinstall && \
-    mv {{python_package}} {{python_disthome}}/{{python_package}}
+    mv {{python_package}} {{python_disthome}}/{{python_package}} && \
     cd .. && \
     rm -rf {{python_src}}
   args:
