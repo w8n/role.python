@@ -40,14 +40,6 @@
     - build-essential
   sudo: yes
 
-- name: copy pre-built python package
-  copy: src={{item}}
-        dest={{python_disthome}}/
-        owner=root group=root mode=0644
-  sudo: yes
-  with_fileglob:
-    - apt/{{python_package}}
-
 - name: download and build Python package from source
   shell: |
     wget -O- {{python_url}} | tar -xz && \
